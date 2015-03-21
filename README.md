@@ -57,15 +57,15 @@ jQuery плагин для выравнивания элементов
     $('.container').alignelements('.title, .footer');
 
 ## Методы
-Обновить с передачей новых настроек или без:
+##### Обновить с передачей новых настроек или без:
     
     $container.alignelements('update', opt);
     $container.alignelements('update'); или  $container.alignelements();
 `opt` может быть только объектом. А также `opt` можно не передавать, в этом сучае будет переинициализация. Это удобно если один из элементов контейнера был обновлен динамически (пример, путем `ajax`).
 
-Выравнить вручную
+##### Выравнить вручную:
     
     $container.alignelements('destroy');
-Открепить плагин
+##### Открепить плагин:
     
     $container.alignelements('destroy');
