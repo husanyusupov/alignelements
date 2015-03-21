@@ -6,7 +6,7 @@ jQuery плагин для выравнивания элементов
     
     $('.container').alignelements(false); // Не учитывать динамичность
 
-    $('.container').alignelements('.title'); // Выравнивать элементы по внутреннему элементу ".title"
+    $('.container').alignelements('.title'); // Выравнить элементы по внутреннему элементу ".title"
     
     $('.container').alignelements('.title', false); // Вышесказанные сразу
 
@@ -46,12 +46,12 @@ jQuery плагин для выравнивания элементов
         </li>
     </ul>
 
-##### \- выравнить элементы `.container > li`.
+##### \- выравнить элементы `.container > li`:
     
     $('.container').alignelements();` 
-##### \- выравнить элементы `.container > li`, но не достающую высоту добавить к элементу `.title`.
+##### \- выравнить элементы `.container > li`, но не достающую высоту добавить к элементу `.title`:
     
     $('.container').alignelements('.title');
-##### \- выравнить элементы `.title` и `.footer` между собой.
+##### \- выравнить элементы `.title` и `.footer` между собой:
     
     $('.container').alignelements('.title, .footer');
