@@ -63,7 +63,10 @@ jQuery плагин для выравнивания элементов
     $container.alignelements('update');
 `opt` может быть только объектом, его можно не передавать, в этом сучае будет переинициализация без новых настроек. Это удобно если один из элементов контейнера был обновлен динамически (например, путем `ajax`).
 
-Тоже самое: `$container.alignelements(opt);` и `$container.alignelements();`.
+Тоже самое:
+    
+    $container.alignelements(opt);
+    $container.alignelements();
 
 ##### Выравнить вручную:
     
