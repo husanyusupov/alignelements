@@ -6,13 +6,14 @@
 *   $('.container').alignelements('.title');
 *   $('.container').alignelements('.title', false);
 *   $('.container').alignelements({
-*       items : '>li',              // указываем какие именно элементы выравнивать, по умолчанию берется дочерние элементы
-*       by    : '.title',           // указываем внутренний элемент к которому задается недостущая высота, если указать несколько элементов чрез запятую, то скрипт будет выравнивать эти элементы между собой
-*       liquid: false               // если контейнер динамичный, т.е. меняется ширина при изменении размера окна, то высота элементов автоматически пересчитывается, по умолчанию true
+*       items : '>li',
+*       by    : '.title',
+*       liquid: false
 *   });
 */
 ;
 (function($, window) {
+    'use strict';
 
     var __pluginName = 'alignelements';
     var $win = $(window);
@@ -75,8 +76,9 @@
             if (itemHeight >= rowHeight) continue;
             if (mode === 'byitem') {
                 delta = 0;
-                if ($item.css('box-sizing') === 'border-box' || $item.css('box-sizing') === 'padding-box') {
-                    delta = $item.outerHeight() - itemHeight;
+                switch ($item.css('box-sizing')) {
+                    case 'border-box': delta = $item.outerHeight() - itemHeight; break;
+                    case 'padding-box': delta = $item.innerHeight() - itemHeight; break;
                 }
                 $item.css('min-height', rowHeight + delta);
             } else if (mode === 'byinner') {
