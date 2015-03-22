@@ -12,14 +12,15 @@
 *   });
 */
 ;
-(function($, window) {
+(function($, win) {
     'use strict';
 
     var __pluginName = 'alignelements';
-    var $win = $(window);
+    var $win = $(win);
 
     function type (obj, str) {
         var type = Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
+        if (type === 'object' && obj == undefined) type = 'null';
         if (!str) return type;
         return type === str;
     }
@@ -27,7 +28,7 @@
     function getMaxheight ($elems) {
         var height = 0, i, elemHeight;
         for (i = $elems.length - 1; i >= 0; i--) {
-            elemHeight = Math.max($elems.eq(i).height(), +$elems.eq(i).data('min-height'));
+            elemHeight = Math.max($elems.eq(i).height(), +$elems.eq(i).data('min-height') || 0);
             if (elemHeight > height) height = elemHeight;
         };
         return height;
@@ -91,6 +92,15 @@
         };
     }
 
+    function getPixelRatio () {
+        var hop = Object.prototype.hasOwnProperty;
+        if (hop.call(win, 'devicePixelRatio')) {
+            return win.devicePixelRatio;
+        } else if ( hop.call(screen, 'deviceXDPI')) {
+            return screen.deviceXDPI / screen.logicalXDPI;
+        }
+    }
+
     var Obj = function($element, args) {
         var self = this;
 
@@ -132,7 +142,7 @@
             
             if (self.inited) self.uninit();
 
-            if (type(self.opt.items, 'null'))  {
+            if (!self.opt.items)  {
                 self.$items = self.$element.children();
             } else {
                 self.$items = self.$element.find(self.opt.items);
@@ -140,7 +150,7 @@
 
             if (!self.$items.length) return;
 
-            if (type(self.opt.by, 'string')) {
+            if (self.opt.by) {
                 for (i = self.$items.length - 1; i >= 0; i--) {
                     $item = self.$items.eq(i);
                     $item.data('by', $item.find(self.opt.by));
@@ -154,26 +164,36 @@
 
             if (!self.mode) self.mode = 'byitem';
 
-            if (self.opt.liquid) {
-                if (!self.cols) self.cols = self.getColCount();
-                self._onresize = onWindowResize;
-                $win.on('resize.' + __pluginName, self._onresize);
-            };
+            
 
             for (i = self.$items.length - 1; i >= 0; i--) {
                 $item = self.$items.eq(i);
                 $item.data('min-height', parseInt($item.css('min-height')));
             };
 
+            self.cols = self.getColCount();
+            self.ratio = getPixelRatio();
             self.inited = true;
             self.align();
+            
+            self._onresize = onWindowResize;
+            $win.on('resize.' + __pluginName, self._onresize);
 
             function onWindowResize (e) {
-                var cols = self.getColCount();
-                if (self.cols !== cols) {
-                    self.update();
-                    self.cols = cols;
+                var newCols, newRatio, doAlign = false;
+                if (self.opt.liquid) {
+                    if (self.cols !== (newCols = self.getColCount())) {
+                        doAlign = true;
+                        self.cols = newCols;
+                    };
                 };
+
+                if (self.ratio !== (newRatio = getPixelRatio())) {
+                    doAlign = true;
+                    self.ratio = newRatio;
+                };
+
+                if (doAlign) self.align();
             }
         },
         uninit: function () {
