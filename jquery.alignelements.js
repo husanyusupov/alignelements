@@ -181,11 +181,10 @@
 
             function onWindowResize (e) {
                 var newCols, newRatio, doAlign = false;
-                if (self.opt.liquid) {
-                    if (self.cols !== (newCols = self.getColCount())) {
-                        doAlign = true;
-                        self.cols = newCols;
-                    };
+                
+                if (self.opt.liquid && self.cols !== (newCols = self.getColCount())) {
+                    doAlign = true;
+                    self.cols = newCols;
                 };
 
                 if (self.ratio !== (newRatio = getPixelRatio())) {
