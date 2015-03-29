@@ -1,4 +1,6 @@
-/*
+/*  @author husanyusupov
+*   @version 1.0
+*
 *   jQuery плагин для выравнивания элементов
 *
 *   $('.container').alignelements();
@@ -8,7 +10,8 @@
 *   $('.container').alignelements({
 *       items : '>li',
 *       by    : '.title',
-*       liquid: false
+*       liquid: false,
+*       useDebounceAfter: 35
 *   });
 */
 ;
@@ -17,29 +20,37 @@
 
     var __pluginName = 'alignelements';
     var $win = $(win);
+    var isMobile =  (/android|blackberry|iphone|ipad|ipod|iemobile|opera mini/i).test(navigator.userAgent);
 
-    function type (obj, str) {
-        var type = Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
-        if (type === 'object' && obj == undefined) type = 'null';
-        if (!str) return type;
-        return type === str;
-    }
+    var debounce = (function () {
+        return function (fn, time) {
+            var timer;
+            var func = function () {
+                win.clearTimeout(timer);
+                timer = win.setTimeout(function () {
+                    fn();
+                }, time);
+            }
+            return func;
+        }
+    }());
 
-    function getMaxheight ($elems) {
+    function getMaxHeight ($elems, self) {
         var height = 0, i, elemHeight;
         for (i = $elems.length - 1; i >= 0; i--) {
-            elemHeight = Math.max($elems.eq(i).height(), +$elems.eq(i).data('min-height') || 0);
+            elemHeight = Math.ceil(Math.max($elems.eq(i).height(), +$elems.eq(i).data('min-height') || 0));
             if (elemHeight > height) height = elemHeight;
         };
         return height;
     }
 
-    function getMaxheights ($elems) {
-        var heights = [], $inners, i, j, innerHeight;
+    function getMaxHeights ($elems) {
+        var heights = [], $inners, $inner, i, j, innerHeight;
         for (i = $elems.length - 1; i >= 0; i--) {
             $inners = $elems.eq(i).data('by');
             for (j = 0; j < $inners.length; j++) {
-                innerHeight = $inners.eq(j).height();
+                $inner = $inners.eq(j);
+                innerHeight = Math.ceil(Math.max($inner.height(), +$inner.data('min-height') || 0));
                 if ( !heights[j] || heights[j] < innerHeight ) heights[j] = innerHeight;
             };
         };
@@ -49,7 +60,7 @@
     function getColCount ($elems) {
         var bottom, i, l;
         bottom = $elems.get(0).getBoundingClientRect().bottom;
-        for (i = 0, l = $elems.length; i < l; i++) {
+        for (i = 1, l = $elems.length; i < l; i++) {
             if ($elems.get(i).getBoundingClientRect().top >= bottom) {
                 return i;
             }
@@ -68,7 +79,7 @@
     }
 
     function alignRow ($elems, rowHeight, mode) {
-        var i, j, $item, itemHeight, delta;
+        var i, j, $item, $inner, $inners, itemHeight;
 
         for (i = $elems.length - 1; i >= 0; i--) {
             $item = $elems.eq(i);
@@ -76,17 +87,15 @@
 
             if (itemHeight >= rowHeight) continue;
             if (mode === 'byitem') {
-                delta = 0;
-                switch ($item.css('box-sizing')) {
-                    case 'border-box': delta = $item.outerHeight() - itemHeight; break;
-                    case 'padding-box': delta = $item.innerHeight() - itemHeight; break;
-                }
-                $item.css('min-height', rowHeight + delta);
+                $item.css('min-height', rowHeight + $item.data('delta'));
             } else if (mode === 'byinner') {
-                $item.data('by').css('min-height', $item.data('by').height() + (rowHeight - itemHeight));
-            } else if (type(rowHeight, 'array')) {
-                for (j = 0; j < $item.data('by').length; j++) {
-                    $item.data('by').eq(j).css('min-height', rowHeight[j]);
+                $inner = $item.data('by');
+                $inner.css('min-height', $inner.height() + (rowHeight - itemHeight) + $inner.data('delta'));
+            } else if (mode === 'byinners') {
+                $inners = $item.data('by');
+                for (j = 0; j < $inners.length; j++) {
+                    $inner = $inners.eq(j);
+                    $inner.css('min-height', rowHeight[j] + $inner.data('delta'));
                 };
             }
         };
@@ -108,28 +117,17 @@
         self.opt = {
             items: null,
             by: null,
-            liquid: true
+            liquid: true,
+            useDebounceAfter: 35
         };
 
-        if (args.length) {
-            switch (args.length) {
-                case 1:
-                    switch ( type(args[0]) ) {
-                        case 'boolean': 
-                            self.opt.liquid = args[0];
-                            break;
-                        case 'string':
-                            self.opt.by = args[0];
-                            break;
-                        case 'object':
-                            self.opt = $.extend(self.opt, args[0]);
-                            break;
-                    }
-                    break;
-                case 2:
-                    self.opt.by = args[0];
-                    self.opt.liquid = args[1];
-            }
+        if (args.length === 1) {
+            if (typeof args[0] === 'boolean') self.opt.liquid = args[0];
+            if (typeof args[0] === 'string') self.opt.by = args[0];
+            if (typeof args[0] === 'object') self.opt = $.extend(self.opt, args[0]);
+        } else if (args.length === 2) {
+            self.opt.by = args[0];
+            self.opt.liquid = args[1];
         }
 
         self.init();
@@ -138,7 +136,7 @@
     Obj.prototype = {
         init : function() {
             var self = this,
-                i, $item;
+                i, $item, $inner, $inners;
             
             if (self.inited) self.uninit();
 
@@ -159,27 +157,39 @@
                     } else if ($item.data('by').length > 1) {
                         self.mode = 'byinners';
                     }
+                    $item.data('by').each(setData);
                 };
+            } else {
+                self.$items.each(setData);
             }
 
             if (!self.mode) self.mode = 'byitem';
-
-            
-
-            for (i = self.$items.length - 1; i >= 0; i--) {
-                $item = self.$items.eq(i);
-                $item.data('min-height', parseInt($item.css('min-height')));
-            };
 
             self.cols = self.getColCount();
             self.ratio = getPixelRatio();
             self.inited = true;
             self.align();
             
+            if (self.$items.length >= self.opt.useDebounceAfter || isMobile) onWindowResize = debounce(onWindowResize, 300);
+
             self._onresize = onWindowResize;
             $win.on('resize.' + __pluginName, self._onresize);
 
-            function onWindowResize (e) {
+            function setData () {
+                var $this = $(this), delta = 0;
+                
+                switch ($this.css('box-sizing')) {
+                    case 'border-box': delta += parseInt($this.css('border-top-width'), 10) +
+                                                parseInt($this.css('border-bottom-width'), 10);
+                    case 'padding-box': delta += parseInt($this.css('padding-top'), 10) +
+                                                 parseInt($this.css('padding-bottom'), 10);
+                }
+
+                $this.data('min-height', parseInt($this.css('min-height'), 10));
+                $this.data('delta', delta);
+            }
+
+            function onWindowResize () {
                 var newCols, newRatio, doAlign = false;
                 
                 if (self.opt.liquid && self.cols !== (newCols = self.getColCount())) {
@@ -199,13 +209,14 @@
             var self = this, i;
             if (self._onresize) $win.off('resize.' + __pluginName, self._onresize);
             if (self.mode === 'byitem') {
-                self.$items.css('min-height', '');
+                self.$items.css('min-height', '').removeData('min-height delta');
             } else if (self.mode === 'byinner' || self.mode === 'byinners') {
                 for (i = self.$items.length - 1; i >= 0; i--) {
-                    self.$items.eq(i).data('by').css('min-height', '');
+                    self.$items.eq(i).data('by').css('min-height', '').removeData('min-height delta');
                 }
             }
-            self.$items.removeData('by min-height');
+            self.$items.removeData('by');
+            self.inited = false;
         },
         destroy : function() {
             var self = this;
@@ -213,16 +224,16 @@
             self.$element.removeData(__pluginName);
         },
         align: function () {
-            var self = this, cols = self.getColCount(), counter = 0, rowHeight = 0, innerHeights, $rowItems;
+            var self = this, cols = self.cols, counter = 0, rowHeight = 0, innerHeights, $rowItems;
             resetHeight(self.$items, self.mode);
             do {
                 $rowItems = self.$items.slice(counter, counter + cols);
                 if (self.mode === 'byitem' || self.mode === 'byinner') {
-                    rowHeight = getMaxheight($rowItems);
+                    rowHeight = getMaxHeight($rowItems, self);
                     alignRow($rowItems, rowHeight, self.mode);
                 } else if (self.mode === 'byinners') {
-                    innerHeights = getMaxheights($rowItems);
-                    alignRow($rowItems, innerHeights);
+                    innerHeights = getMaxHeights($rowItems, self);
+                    alignRow($rowItems, innerHeights, self.mode);
                 }
                 counter += cols;
             } while (self.$items.length - counter > 0)
