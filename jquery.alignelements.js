@@ -1,4 +1,4 @@
-/*  @author husanyusupov
+/*  @author yusupov
 *   @version 1.0
 *
 *   jQuery плагин для выравнивания элементов
@@ -69,12 +69,27 @@
     }
 
     function resetHeight ($elems, mode) {
-        if (mode === 'byinner' || mode === 'byinners') {
-            for (var i = $elems.length - 1; i >= 0; i--) {
-                $elems.eq(i).data('by').css('min-height', 1);
+        var $elem, $inner, $inners, i, j;
+
+        if (mode === 'byinner') {
+            for (i = $elems.length - 1; i >= 0; i--) {
+                $inner = $elems.eq(i).data('by');
+                $inner.css('min-height', $inner.data('min-height') || 1);
             };
-        } else {
+        } else if (mode === 'byinners') {
+            for (i = $elems.length - 1; i >= 0; i--) {
+                $inners = $elems.eq(i).data('by');
+                for (j = $inners.length - 1; j >= 0; j--) {
+                    $inner = $inners.eq(j);
+                    $inner.css('min-height', $inner.data('min-height') || 1);
+                };                
+            };
+        } else if (mode === 'byitem') {
             $elems.css('min-height', 1);
+            for (i = $elems.length - 1; i >= 0; i--) {
+                $elem = $elems.eq(i);
+                $elem.css('min-height', $elem.data('min-height') || 1);
+            };
         }
     }
 
